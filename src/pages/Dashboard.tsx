@@ -1,76 +1,23 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import AdminSidebar from "@/components/dashboard/AdminSidebar";
+import FarmerSidebar from "@/components/dashboard/FarmerSidebar";
+import UserSidebar from "@/components/dashboard/UserSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  Leaf, 
-  LogOut, 
-  User, 
-  Tractor, 
-  Shield, 
-  Home,
-  TrendingUp,
-  Package,
-  Clock,
-  Loader2
-} from "lucide-react";
-import logo from "@/assets/logo.png";
-import { Link } from "react-router-dom";
-import type { User as SupabaseUser, Session } from "@supabase/supabase-js";
+import { Leaf, Package, TrendingUp, Clock, Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<string>("user");
-
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          const role = session.user.user_metadata?.role || "user";
-          setUserRole(role);
-        }
-        setLoading(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const role = session.user.user_metadata?.role || "user";
-        setUserRole(role);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user, role, loading } = useAuth();
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "Signed out",
-      description: "You have been successfully signed out.",
-    });
-    navigate("/");
-  };
 
   if (loading) {
     return (
@@ -80,122 +27,83 @@ const Dashboard = () => {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
-  const getRoleBadge = () => {
-    switch (userRole) {
-      case "admin":
-        return <Badge className="bg-destructive"><Shield className="h-3 w-3 mr-1" />Admin</Badge>;
-      case "farmer":
-        return <Badge className="bg-earth"><Tractor className="h-3 w-3 mr-1" />Farmer</Badge>;
-      default:
-        return <Badge variant="secondary"><User className="h-3 w-3 mr-1" />User</Badge>;
+  const getSidebar = () => {
+    switch (role) {
+      case "admin": return <AdminSidebar />;
+      case "farmer": return <FarmerSidebar />;
+      default: return <UserSidebar />;
     }
   };
 
   const getQuickActions = () => {
-    switch (userRole) {
+    switch (role) {
       case "admin":
         return [
-          { title: "Verify Farmers", icon: Shield, description: "Review pending farmer applications", href: "/admin/farmers" },
-          { title: "All Orders", icon: Package, description: "Monitor platform orders", href: "/admin/orders" },
-          { title: "Users", icon: User, description: "Manage platform users", href: "/admin/users" },
-          { title: "Analytics", icon: TrendingUp, description: "View platform statistics", href: "/admin/analytics" },
+          { title: "Verify Farmers", description: "Review pending applications", href: "/dashboard/admin/verify-farmers" },
+          { title: "All Orders", description: "Monitor platform orders", href: "/dashboard/admin/orders" },
+          { title: "Users", description: "Manage platform users", href: "/dashboard/admin/users" },
         ];
       case "farmer":
         return [
-          { title: "My Land", icon: Home, description: "Manage your land listings", href: "/farmer/land" },
-          { title: "Orders", icon: Package, description: "View planting requests", href: "/farmer/orders" },
-          { title: "AI Insights", icon: TrendingUp, description: "See trending vegetables", href: "/farmer/insights" },
-          { title: "Deliveries", icon: Clock, description: "Manage deliveries", href: "/farmer/deliveries" },
+          { title: "My Land", description: "Manage your listings", href: "/dashboard/farmer/land" },
+          { title: "Orders", description: "View planting requests", href: "/dashboard/farmer/orders" },
+          { title: "Add Land", description: "Create new listing", href: "/dashboard/farmer/land/new" },
         ];
       default:
         return [
-          { title: "Find Farmers", icon: Tractor, description: "Browse verified farmers", href: "/farmers" },
-          { title: "My Orders", icon: Package, description: "Track your orders", href: "/user/orders" },
-          { title: "AI Suggestions", icon: Leaf, description: "Get vegetable recommendations", href: "/user/suggestions" },
-          { title: "Order History", icon: Clock, description: "View past orders", href: "/user/history" },
+          { title: "Find Farmers", description: "Browse verified farmers", href: "/dashboard/user/farmers" },
+          { title: "My Orders", description: "Track your orders", href: "/dashboard/user/orders" },
+          { title: "AI Suggestions", description: "Get recommendations", href: "/dashboard/user/suggestions" },
         ];
     }
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="GrowShare" className="h-10 w-10" />
-            <span className="font-display text-xl font-bold">
-              Grow<span className="text-primary">Share</span>
-            </span>
-          </Link>
-          
-          <div className="flex items-center gap-4">
-            {getRoleBadge()}
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {/* Welcome */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-display font-bold mb-2">
+    <DashboardLayout sidebar={getSidebar()}>
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-display font-bold mb-2">
             Welcome back, {user.user_metadata?.full_name || "User"}!
           </h1>
           <p className="text-muted-foreground">
-            {userRole === "farmer" && "Manage your farm and connect with customers."}
-            {userRole === "admin" && "Monitor and manage the GrowShare platform."}
-            {userRole === "user" && "Browse farmers and track your vegetable orders."}
+            {role === "farmer" && "Manage your farm and connect with customers."}
+            {role === "admin" && "Monitor and manage the GrowShare platform."}
+            {role === "user" && "Browse farmers and track your vegetable orders."}
           </p>
         </div>
 
-        {/* Farmer Pending Notice */}
-        {userRole === "farmer" && (
-          <Card className="mb-8 border-sun bg-sun/10">
+        {role === "farmer" && (
+          <Card className="border-sun bg-sun/10">
             <CardContent className="flex items-center gap-4 py-4">
               <Clock className="h-8 w-8 text-sun" />
               <div>
                 <p className="font-semibold">Profile Under Review</p>
                 <p className="text-sm text-muted-foreground">
-                  Your farmer profile is pending admin approval. You'll be notified once verified.
+                  Your farmer profile is pending admin approval.
                 </p>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Quick Actions */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {getQuickActions().map((action, index) => (
-            <Card 
-              key={index} 
-              className="group hover:shadow-glow transition-all duration-300 cursor-pointer"
-            >
-              <CardHeader className="pb-2">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
-                  <action.icon className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle className="text-lg">{action.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>{action.description}</CardDescription>
-              </CardContent>
-            </Card>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {getQuickActions().map((action, idx) => (
+            <Link key={idx} to={action.href}>
+              <Card className="hover:shadow-glow transition-all duration-300 h-full">
+                <CardHeader>
+                  <CardTitle className="text-lg">{action.title}</CardTitle>
+                  <CardDescription>{action.description}</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
           ))}
         </div>
 
-        {/* Stats Overview */}
-        <div className="mt-12">
-          <h2 className="text-xl font-display font-semibold mb-6">Overview</h2>
-          <div className="grid sm:grid-cols-3 gap-6">
+        <div>
+          <h2 className="text-xl font-display font-semibold mb-4">Overview</h2>
+          <div className="grid sm:grid-cols-3 gap-4">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -212,7 +120,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      {userRole === "farmer" ? "Land Plots" : "Vegetables Growing"}
+                      {role === "farmer" ? "Land Plots" : "Growing"}
                     </p>
                     <p className="text-3xl font-bold text-primary">0</p>
                   </div>
@@ -225,7 +133,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      {userRole === "farmer" ? "Total Earnings" : "Total Spent"}
+                      {role === "farmer" ? "Earnings" : "Spent"}
                     </p>
                     <p className="text-3xl font-bold text-primary">$0</p>
                   </div>
@@ -235,8 +143,8 @@ const Dashboard = () => {
             </Card>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
