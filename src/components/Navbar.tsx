@@ -13,7 +13,9 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="GrowShare" className="h-10 w-10 md:h-12 md:w-12" />
+            <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-primary/10 p-1.5 flex items-center justify-center shadow-sm">
+              <img src={logo} alt="GrowShare" className="h-full w-full object-contain" />
+            </div>
             <span className="font-display text-xl md:text-2xl font-bold text-foreground">
               Grow<span className="text-primary">Share</span>
             </span>
