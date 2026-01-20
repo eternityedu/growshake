@@ -6,7 +6,7 @@ const CTASection = () => {
   return (
     <section className="py-20 md:py-32 relative overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 hero-gradient opacity-90" />
+      <div className="absolute inset-0 bg-primary" />
       <div className="absolute inset-0 leaf-pattern opacity-10" />
       
       {/* Floating Elements */}
@@ -21,7 +21,7 @@ const CTASection = () => {
           </div>
           
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-primary-foreground mb-6">
-            Ready to Grow Your Own Fresh Vegetables?
+            Ready to Get Fresh Vegetables?
           </h2>
           
           <p className="text-lg md:text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
@@ -34,7 +34,7 @@ const CTASection = () => {
               size="lg"
               variant="secondary"
               asChild
-              className="text-lg px-8 shadow-lg hover:shadow-xl transition-shadow"
+              className="text-lg px-8 shadow-lg hover:shadow-xl transition-shadow bg-background text-primary hover:bg-background/90"
             >
               <Link to="/auth?mode=signup">
                 Get Started Free
@@ -43,9 +43,8 @@ const CTASection = () => {
             </Button>
             <Button
               size="lg"
-              variant="outline"
               asChild
-              className="text-lg px-8 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+              className="text-lg px-8 bg-primary-foreground/20 border-2 border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/30"
             >
               <Link to="/auth?mode=signup&role=farmer">
                 Register as Farmer

@@ -6,7 +6,7 @@ import {
   Package,
   Sprout,
   Truck,
-  TrendingUp,
+  Sparkles,
   User,
   Plus,
 } from "lucide-react";
@@ -18,7 +18,12 @@ const menuItems = [
   { title: "Orders", href: "/dashboard/farmer/orders", icon: Package },
   { title: "Growth Updates", href: "/dashboard/farmer/growth", icon: Sprout },
   { title: "Deliveries", href: "/dashboard/farmer/deliveries", icon: Truck },
-  { title: "AI Insights", href: "/dashboard/farmer/insights", icon: TrendingUp },
+  { 
+    title: "AI Insights", 
+    href: "/dashboard/farmer/ai", 
+    icon: Sparkles,
+    badge: "AI"
+  },
   { title: "My Profile", href: "/dashboard/farmer/profile", icon: User },
 ];
 
@@ -44,7 +49,15 @@ const FarmerSidebar = () => {
             )}
           >
             <item.icon className="h-4 w-4" />
-            {item.title}
+            <span className="flex-1">{item.title}</span>
+            {item.badge && (
+              <span className={cn(
+                "text-xs px-1.5 py-0.5 rounded-full",
+                isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary"
+              )}>
+                {item.badge}
+              </span>
+            )}
           </Link>
         );
       })}

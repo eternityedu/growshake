@@ -6,7 +6,7 @@ import {
   Tractor,
   Package,
   CreditCard,
-  BarChart3,
+  Sparkles,
   Settings,
   CheckCircle,
 } from "lucide-react";
@@ -18,7 +18,12 @@ const menuItems = [
   { title: "All Users", href: "/dashboard/admin/users", icon: Users },
   { title: "All Orders", href: "/dashboard/admin/orders", icon: Package },
   { title: "Payments", href: "/dashboard/admin/payments", icon: CreditCard },
-  { title: "Analytics", href: "/dashboard/admin/analytics", icon: BarChart3 },
+  { 
+    title: "Analytics & AI", 
+    href: "/dashboard/admin/analytics", 
+    icon: Sparkles,
+    badge: "AI"
+  },
   { title: "Settings", href: "/dashboard/admin/settings", icon: Settings },
 ];
 
@@ -44,7 +49,15 @@ const AdminSidebar = () => {
             )}
           >
             <item.icon className="h-4 w-4" />
-            {item.title}
+            <span className="flex-1">{item.title}</span>
+            {item.badge && (
+              <span className={cn(
+                "text-xs px-1.5 py-0.5 rounded-full",
+                isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary"
+              )}>
+                {item.badge}
+              </span>
+            )}
           </Link>
         );
       })}

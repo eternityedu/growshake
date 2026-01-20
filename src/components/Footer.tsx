@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import logo from "@/assets/logo.png";
+import logoMain from "@/assets/logo-main.png";
 import { Facebook, Twitter, Instagram, Mail, Phone, MapPin } from "lucide-react";
 
 const Footer = () => {
@@ -10,7 +10,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <img src={logo} alt="GrowShare" className="h-12 w-12" />
+              <img src={logoMain} alt="GrowShare" className="h-12 w-12 rounded-lg" />
               <span className="font-display text-2xl font-bold">
                 Grow<span className="text-primary">Share</span>
               </span>
@@ -64,7 +64,7 @@ const Footer = () => {
             <ul className="space-y-3">
               <li>
                 <Link to="/auth?mode=signup" className="text-background/70 hover:text-primary transition-colors">
-                  Start Growing
+                  Get Started Free
                 </Link>
               </li>
               <li>
@@ -73,8 +73,8 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/auth?mode=signup&role=farmer" className="text-background/70 hover:text-primary transition-colors">
-                  Become a Farmer
+                <Link to="/auth?mode=signup&role=farmer" className="text-primary hover:text-primary/80 transition-colors font-semibold">
+                  Register as Farmer
                 </Link>
               </li>
               <li>
