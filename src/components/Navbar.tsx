@@ -2,20 +2,18 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
-import logo from "@/assets/logo.png";
+import logoMain from "@/assets/logo-main.png";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-primary/10">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-primary/10 p-1.5 flex items-center justify-center shadow-sm">
-              <img src={logo} alt="GrowShare" className="h-full w-full object-contain" />
-            </div>
+            <img src={logoMain} alt="GrowShare" className="h-10 w-10 md:h-12 md:w-12 rounded-lg" />
             <span className="font-display text-xl md:text-2xl font-bold text-foreground">
               Grow<span className="text-primary">Share</span>
             </span>
@@ -42,8 +40,8 @@ const Navbar = () => {
             <Button variant="ghost" asChild>
               <Link to="/auth">Sign In</Link>
             </Button>
-            <Button asChild>
-              <Link to="/auth?mode=signup">Get Started</Link>
+            <Button asChild className="bg-primary hover:bg-primary/90">
+              <Link to="/auth?mode=signup">Get Started Free</Link>
             </Button>
           </div>
 
@@ -59,7 +57,7 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className="md:hidden py-4 border-t border-border/50 animate-fade-in">
+          <div className="md:hidden py-4 border-t border-primary/10 animate-fade-in">
             <div className="flex flex-col gap-4">
               <Link
                 to="/"
@@ -89,12 +87,15 @@ const Navbar = () => {
               >
                 About
               </Link>
-              <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
+              <div className="flex flex-col gap-2 pt-4 border-t border-primary/10">
                 <Button variant="outline" asChild className="w-full">
                   <Link to="/auth" onClick={() => setIsOpen(false)}>Sign In</Link>
                 </Button>
-                <Button asChild className="w-full">
-                  <Link to="/auth?mode=signup" onClick={() => setIsOpen(false)}>Get Started</Link>
+                <Button asChild className="w-full bg-primary hover:bg-primary/90">
+                  <Link to="/auth?mode=signup" onClick={() => setIsOpen(false)}>Get Started Free</Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
+                  <Link to="/auth?mode=signup&role=farmer" onClick={() => setIsOpen(false)}>Register as Farmer</Link>
                 </Button>
               </div>
             </div>
