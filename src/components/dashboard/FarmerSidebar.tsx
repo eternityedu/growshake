@@ -9,6 +9,7 @@ import {
   Sparkles,
   User,
   Plus,
+  MessageCircle,
 } from "lucide-react";
 
 const menuItems = [
@@ -18,6 +19,11 @@ const menuItems = [
   { title: "Orders", href: "/dashboard/farmer/orders", icon: Package },
   { title: "Growth Updates", href: "/dashboard/farmer/growth", icon: Sprout },
   { title: "Deliveries", href: "/dashboard/farmer/deliveries", icon: Truck },
+  { 
+    title: "Chat with Admin", 
+    href: "/dashboard/farmer/chat", 
+    icon: MessageCircle,
+  },
   { 
     title: "AI Insights", 
     href: "/dashboard/farmer/ai", 
