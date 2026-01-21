@@ -14,17 +14,21 @@ import AdminVerifyFarmers from "./pages/dashboard/AdminVerifyFarmers";
 import AdminUsers from "./pages/dashboard/AdminUsers";
 import AdminOrders from "./pages/dashboard/AdminOrders";
 import AdminAnalytics from "./pages/dashboard/AdminAnalytics";
+import AdminSettings from "./pages/dashboard/AdminSettings";
+import AdminMessages from "./pages/dashboard/AdminMessages";
 
 // Farmer pages
 import FarmerLand from "./pages/dashboard/FarmerLand";
 import FarmerLandNew from "./pages/dashboard/FarmerLandNew";
 import FarmerOrders from "./pages/dashboard/FarmerOrders";
 import FarmerAI from "./pages/dashboard/FarmerAI";
+import FarmerChat from "./pages/dashboard/FarmerChat";
 
 // User pages
 import UserFarmers from "./pages/dashboard/UserFarmers";
 import UserOrders from "./pages/dashboard/UserOrders";
 import UserAISuggestions from "./pages/dashboard/UserAISuggestions";
+import PlaceOrder from "./pages/dashboard/PlaceOrder";
 
 const queryClient = new QueryClient();
 
@@ -45,17 +49,21 @@ const App = () => (
             <Route path="/dashboard/admin/users" element={<AdminUsers />} />
             <Route path="/dashboard/admin/orders" element={<AdminOrders />} />
             <Route path="/dashboard/admin/analytics" element={<AdminAnalytics />} />
+            <Route path="/dashboard/admin/settings" element={<AdminSettings />} />
+            <Route path="/dashboard/admin/messages" element={<AdminMessages />} />
             
             {/* Farmer Routes */}
             <Route path="/dashboard/farmer/land" element={<FarmerLand />} />
             <Route path="/dashboard/farmer/land/new" element={<FarmerLandNew />} />
             <Route path="/dashboard/farmer/orders" element={<FarmerOrders />} />
             <Route path="/dashboard/farmer/ai" element={<FarmerAI />} />
+            <Route path="/dashboard/farmer/chat" element={<FarmerChat />} />
             
             {/* User Routes */}
             <Route path="/dashboard/user/farmers" element={<UserFarmers />} />
             <Route path="/dashboard/user/orders" element={<UserOrders />} />
             <Route path="/dashboard/user/suggestions" element={<UserAISuggestions />} />
+            <Route path="/dashboard/user/order/:listingId" element={<PlaceOrder />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

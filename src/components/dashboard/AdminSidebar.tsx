@@ -9,11 +9,13 @@ import {
   Sparkles,
   Settings,
   CheckCircle,
+  MessageCircle,
 } from "lucide-react";
 
 const menuItems = [
   { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { title: "Farmer Verification", href: "/dashboard/admin/verify-farmers", icon: CheckCircle },
+  { title: "Farmer Messages", href: "/dashboard/admin/messages", icon: MessageCircle },
   { title: "All Farmers", href: "/dashboard/admin/farmers", icon: Tractor },
   { title: "All Users", href: "/dashboard/admin/users", icon: Users },
   { title: "All Orders", href: "/dashboard/admin/orders", icon: Package },
