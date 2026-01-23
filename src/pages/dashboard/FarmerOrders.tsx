@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrency } from "@/hooks/useCurrency";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import FarmerSidebar from "@/components/dashboard/FarmerSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +55,7 @@ const statusFlow = [
 
 const FarmerOrders = () => {
   const { user } = useAuth();
+  const { formatPrice } = useCurrency();
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,6 +145,28 @@ const FarmerOrders = () => {
         title: "Updated",
         description: `Order status changed to ${newStatus.replace(/_/g, " ")}.`,
       });
+
+      // Send notification
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        try {
+          await supabase.functions.invoke("send-notification", {
+            body: {
+              type: newStatus === "accepted" ? "order_accepted" : 
+                    newStatus === "rejected" ? "order_rejected" :
+                    newStatus === "ready_to_harvest" ? "ready_for_delivery" :
+                    newStatus === "delivered" ? "order_delivered" : "order_accepted",
+              orderId,
+              recipientEmail: order.profiles?.email || "",
+              recipientName: order.profiles?.full_name || "Customer",
+              vegetableName: order.vegetable_name,
+            },
+          });
+        } catch (err) {
+          console.log("Notification logged (email service not configured)");
+        }
+      }
+
       fetchOrders();
     }
     setUpdating(null);
@@ -225,7 +249,7 @@ const FarmerOrders = () => {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Total Price</p>
-                      <p className="font-medium">${order.total_price}</p>
+                      <p className="font-medium">{formatPrice(order.total_price)}</p>
                     </div>
                   </div>
 

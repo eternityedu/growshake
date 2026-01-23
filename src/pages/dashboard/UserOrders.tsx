@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrency } from "@/hooks/useCurrency";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import UserSidebar from "@/components/dashboard/UserSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,7 @@ interface Order {
 const UserOrders = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { formatPrice, loading: currencyLoading } = useCurrency();
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ const UserOrders = () => {
     }
   }, [user, toast]);
 
-  if (authLoading || loading) {
+  if (authLoading || loading || currencyLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -77,11 +79,13 @@ const UserOrders = () => {
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
       pending: { variant: "secondary", label: "Pending" },
-      confirmed: { variant: "default", label: "Confirmed" },
-      planting: { variant: "default", label: "Planting" },
+      accepted: { variant: "default", label: "Accepted" },
+      planted: { variant: "default", label: "Planted" },
       growing: { variant: "default", label: "Growing" },
-      harvesting: { variant: "default", label: "Harvesting" },
+      ready_to_harvest: { variant: "default", label: "Ready to Harvest" },
+      harvested: { variant: "default", label: "Harvested" },
       delivered: { variant: "outline", label: "Delivered" },
+      rejected: { variant: "destructive", label: "Rejected" },
       cancelled: { variant: "destructive", label: "Cancelled" },
     };
     const config = statusConfig[status] || { variant: "secondary", label: status };
@@ -130,15 +134,15 @@ const UserOrders = () => {
                   <div className="grid sm:grid-cols-3 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Total Price</p>
-                      <p className="font-semibold text-primary">${order.total_price}</p>
+                      <p className="font-semibold text-primary">{formatPrice(order.total_price)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Advance Paid</p>
-                      <p className="font-semibold">${order.advance_amount}</p>
+                      <p className="font-semibold">{formatPrice(order.advance_amount)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Remaining</p>
-                      <p className="font-semibold">${order.final_amount}</p>
+                      <p className="font-semibold">{formatPrice(order.final_amount)}</p>
                     </div>
                   </div>
                   {order.expected_harvest_date && (

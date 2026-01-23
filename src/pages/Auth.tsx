@@ -5,13 +5,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Lock, User, ArrowLeft, Loader2, Tractor, Leaf } from "lucide-react";
+import { Mail, Lock, User, ArrowLeft, Loader2, Tractor, Leaf, Globe } from "lucide-react";
 import logoMain from "@/assets/logo-main.png";
 
 type AuthMode = "signin" | "signup";
 type UserRole = "user" | "farmer";
+
+const COUNTRIES = [
+  { code: "US", name: "United States", currency: "USD", symbol: "$" },
+  { code: "GB", name: "United Kingdom", currency: "GBP", symbol: "£" },
+  { code: "EU", name: "European Union", currency: "EUR", symbol: "€" },
+  { code: "IN", name: "India", currency: "INR", symbol: "₹" },
+  { code: "AU", name: "Australia", currency: "AUD", symbol: "A$" },
+  { code: "CA", name: "Canada", currency: "CAD", symbol: "C$" },
+  { code: "JP", name: "Japan", currency: "JPY", symbol: "¥" },
+  { code: "CN", name: "China", currency: "CNY", symbol: "¥" },
+  { code: "BD", name: "Bangladesh", currency: "BDT", symbol: "৳" },
+  { code: "PK", name: "Pakistan", currency: "PKR", symbol: "₨" },
+  { code: "NG", name: "Nigeria", currency: "NGN", symbol: "₦" },
+  { code: "BR", name: "Brazil", currency: "BRL", symbol: "R$" },
+  { code: "MX", name: "Mexico", currency: "MXN", symbol: "$" },
+  { code: "ZA", name: "South Africa", currency: "ZAR", symbol: "R" },
+  { code: "KE", name: "Kenya", currency: "KES", symbol: "KSh" },
+];
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -23,6 +42,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [country, setCountry] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -53,7 +73,11 @@ const Auth = () => {
         if (password.length < 6) {
           throw new Error("Password must be at least 6 characters");
         }
+        if (!country) {
+          throw new Error("Please select your country");
+        }
 
+        const selectedCountry = COUNTRIES.find(c => c.code === country);
         const redirectUrl = `${window.location.origin}/`;
         
         const { data, error } = await supabase.auth.signUp({
@@ -64,6 +88,8 @@ const Auth = () => {
             data: {
               full_name: fullName.trim(),
               role: role,
+              country: country,
+              currency: selectedCountry?.currency || "USD",
             },
           },
         });
@@ -202,6 +228,27 @@ const Auth = () => {
                         </Label>
                       </div>
                     </RadioGroup>
+                  </div>
+
+                  {/* Country Selection */}
+                  <div className="space-y-2">
+                    <Label>Country *</Label>
+                    <Select value={country} onValueChange={setCountry}>
+                      <SelectTrigger className="w-full">
+                        <Globe className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <SelectValue placeholder="Select your country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRIES.map((c) => (
+                          <SelectItem key={c.code} value={c.code}>
+                            {c.name} ({c.currency})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Prices will be shown in your local currency
+                    </p>
                   </div>
                 </>
               )}
