@@ -10,8 +10,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCurrency } from '@/hooks/useCurrency';
 import { toast } from 'sonner';
-import { MapPin, Leaf, DollarSign, ArrowLeft, ShoppingCart } from 'lucide-react';
+import { MapPin, Leaf, DollarSign, ArrowLeft, ShoppingCart, Loader2 } from 'lucide-react';
 
 interface LandListing {
   id: string;
@@ -31,6 +32,7 @@ export default function PlaceOrder() {
   const { listingId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { formatPrice, loading: currencyLoading } = useCurrency();
   
   const [listing, setListing] = useState<LandListing | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,6 +109,30 @@ export default function PlaceOrder() {
     setSubmitting(true);
 
     try {
+      // Get user profile for notification
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', user.id)
+        .single();
+
+      // Get farmer profile for notification
+      const { data: farmerProfile } = await supabase
+        .from('farmer_profiles')
+        .select('user_id, farm_name')
+        .eq('id', listing.farmer_id)
+        .single();
+
+      let farmerEmail = '';
+      if (farmerProfile) {
+        const { data: farmerUser } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('user_id', farmerProfile.user_id)
+          .single();
+        farmerEmail = farmerUser?.email || '';
+      }
+
       // Create the order
       const { data: order, error: orderError } = await supabase
         .from('vegetable_orders')
@@ -122,7 +148,7 @@ export default function PlaceOrder() {
           delivery_address: deliveryAddress,
           delivery_notes: deliveryNotes,
           planting_instructions: plantingInstructions,
-          status: 'pending_advance',
+          status: 'pending',
         })
         .select()
         .single();
@@ -142,8 +168,25 @@ export default function PlaceOrder() {
 
       if (paymentError) throw paymentError;
 
-      toast.success('Order placed successfully! Please complete the advance payment.');
-      navigate('/dashboard/orders');
+      // Send notification to farmer
+      try {
+        await supabase.functions.invoke('send-notification', {
+          body: {
+            type: 'order_placed',
+            orderId: order.id,
+            recipientEmail: farmerEmail,
+            recipientName: farmerProfile?.farm_name || 'Farmer',
+            vegetableName: selectedVegetable,
+            farmerName: farmerProfile?.farm_name,
+            customerName: userProfile?.full_name || 'Customer',
+          },
+        });
+      } catch (err) {
+        console.log('Notification logged (email service not configured)');
+      }
+
+      toast.success('Order placed successfully!');
+      navigate('/dashboard/user/orders');
     } catch (error) {
       console.error('Error placing order:', error);
       toast.error('Failed to place order');
@@ -152,11 +195,11 @@ export default function PlaceOrder() {
     }
   };
 
-  if (loading) {
+  if (loading || currencyLoading) {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </DashboardLayout>
     );
@@ -167,7 +210,7 @@ export default function PlaceOrder() {
       <DashboardLayout sidebar={<UserSidebar />}>
         <div className="text-center py-12">
           <p className="text-muted-foreground">Listing not found</p>
-          <Button onClick={() => navigate('/dashboard/farmers')} className="mt-4">
+          <Button onClick={() => navigate('/dashboard/user/farmers')} className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Farmers
           </Button>
@@ -180,7 +223,7 @@ export default function PlaceOrder() {
     <DashboardLayout sidebar={<UserSidebar />}>
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/dashboard/farmers')}>
+          <Button variant="ghost" onClick={() => navigate('/dashboard/user/farmers')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
@@ -233,7 +276,7 @@ export default function PlaceOrder() {
                       placeholder={`Max available: ${listing.available_size_sqft} sq ft`}
                     />
                     <p className="text-sm text-muted-foreground">
-                      Available: {listing.available_size_sqft} sq ft at ₹{listing.price_per_sqft}/sq ft
+                      Available: {listing.available_size_sqft} sq ft at {formatPrice(listing.price_per_sqft)}/sq ft
                     </p>
                   </div>
 
@@ -298,22 +341,22 @@ export default function PlaceOrder() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Price per sq ft</span>
-                  <span className="font-medium">₹{listing.price_per_sqft}</span>
+                  <span className="font-medium">{formatPrice(listing.price_per_sqft)}</span>
                 </div>
                 <hr />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Price</span>
-                  <span className="font-bold text-lg">₹{totalPrice.toFixed(2)}</span>
+                  <span className="font-bold text-lg">{formatPrice(totalPrice)}</span>
                 </div>
                 <hr />
                 <div className="bg-primary/10 p-4 rounded-lg space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Advance Payment (30%)</span>
-                    <span className="font-medium text-primary">₹{advanceAmount.toFixed(2)}</span>
+                    <span className="font-medium text-primary">{formatPrice(advanceAmount)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Final Payment (70%)</span>
-                    <span className="font-medium">₹{finalAmount.toFixed(2)}</span>
+                    <span className="font-medium">{formatPrice(finalAmount)}</span>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">

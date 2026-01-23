@@ -28,7 +28,9 @@ import FarmerChat from "./pages/dashboard/FarmerChat";
 import UserFarmers from "./pages/dashboard/UserFarmers";
 import UserOrders from "./pages/dashboard/UserOrders";
 import UserAISuggestions from "./pages/dashboard/UserAISuggestions";
+import UserGrowthUpdates from "./pages/dashboard/UserGrowthUpdates";
 import PlaceOrder from "./pages/dashboard/PlaceOrder";
+import GrowthTracking from "./pages/dashboard/GrowthTracking";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +58,7 @@ const App = () => (
             <Route path="/dashboard/farmer/land" element={<FarmerLand />} />
             <Route path="/dashboard/farmer/land/new" element={<FarmerLandNew />} />
             <Route path="/dashboard/farmer/orders" element={<FarmerOrders />} />
+            <Route path="/dashboard/farmer/growth" element={<GrowthTracking />} />
             <Route path="/dashboard/farmer/ai" element={<FarmerAI />} />
             <Route path="/dashboard/farmer/chat" element={<FarmerChat />} />
             
@@ -63,6 +66,7 @@ const App = () => (
             <Route path="/dashboard/user/farmers" element={<UserFarmers />} />
             <Route path="/dashboard/user/orders" element={<UserOrders />} />
             <Route path="/dashboard/user/suggestions" element={<UserAISuggestions />} />
+            <Route path="/dashboard/user/tracking" element={<UserGrowthUpdates />} />
             <Route path="/dashboard/user/order/:listingId" element={<PlaceOrder />} />
             
             <Route path="*" element={<NotFound />} />
