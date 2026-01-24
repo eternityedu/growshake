@@ -1,9 +1,57 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Leaf, Sprout, Truck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import logoCircle from "@/assets/logo-circle.png";
 
 const HeroSection = () => {
+  const [stats, setStats] = useState({
+    farmers: 0,
+    users: 0,
+    vegetables: 0,
+  });
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      // Fetch approved farmers count
+      const { count: farmersCount } = await supabase
+        .from("farmer_profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("verification_status", "approved");
+
+      // Fetch total users count
+      const { count: usersCount } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
+
+      // Fetch unique vegetables from land listings
+      const { data: listings } = await supabase
+        .from("land_listings")
+        .select("supported_vegetables")
+        .eq("is_active", true);
+
+      const uniqueVegetables = new Set<string>();
+      listings?.forEach((listing) => {
+        listing.supported_vegetables?.forEach((veg: string) => {
+          uniqueVegetables.add(veg);
+        });
+      });
+
+      setStats({
+        farmers: farmersCount || 0,
+        users: usersCount || 0,
+        vegetables: uniqueVegetables.size || 0,
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
+
   return (
     <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-background">
       {/* Background Pattern */}
@@ -48,15 +96,21 @@ const HeroSection = () => {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-primary/10 animate-fade-in" style={{ animationDelay: "0.4s" }}>
               <div>
-                <p className="text-2xl md:text-3xl font-bold text-primary">500+</p>
+                <p className="text-2xl md:text-3xl font-bold text-primary">
+                  {stats.farmers > 0 ? `${stats.farmers}+` : "0"}
+                </p>
                 <p className="text-sm text-muted-foreground">Active Farmers</p>
               </div>
               <div>
-                <p className="text-2xl md:text-3xl font-bold text-primary">10K+</p>
+                <p className="text-2xl md:text-3xl font-bold text-primary">
+                  {stats.users > 0 ? `${stats.users}+` : "0"}
+                </p>
                 <p className="text-sm text-muted-foreground">Happy Users</p>
               </div>
               <div>
-                <p className="text-2xl md:text-3xl font-bold text-primary">50+</p>
+                <p className="text-2xl md:text-3xl font-bold text-primary">
+                  {stats.vegetables > 0 ? `${stats.vegetables}+` : "0"}
+                </p>
                 <p className="text-sm text-muted-foreground">Vegetables</p>
               </div>
             </div>

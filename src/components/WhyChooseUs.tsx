@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { Check, Users, Tractor, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const features = [
   "Direct connection with local farmers",
@@ -11,13 +13,42 @@ const features = [
   "Secure payment system",
 ];
 
-const stats = [
-  { icon: Users, value: "10,000+", label: "Happy Users" },
-  { icon: Tractor, value: "500+", label: "Active Farmers" },
-  { icon: Shield, value: "100%", label: "Secure Payments" },
-];
-
 const WhyChooseUs = () => {
+  const [stats, setStats] = useState({
+    users: 0,
+    farmers: 0,
+  });
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const { count: usersCount } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
+
+      const { count: farmersCount } = await supabase
+        .from("farmer_profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("verification_status", "approved");
+
+      setStats({
+        users: usersCount || 0,
+        farmers: farmersCount || 0,
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
+
+  const statItems = [
+    { icon: Users, value: stats.users > 0 ? `${stats.users}+` : "0", label: "Happy Users" },
+    { icon: Tractor, value: stats.farmers > 0 ? `${stats.farmers}+` : "0", label: "Active Farmers" },
+    { icon: Shield, value: "100%", label: "Secure Payments" },
+  ];
+
   return (
     <section className="py-20 md:py-32 bg-foreground text-background overflow-hidden">
       <div className="container mx-auto px-4">
@@ -59,7 +90,7 @@ const WhyChooseUs = () => {
             <div className="absolute inset-0 hero-gradient opacity-10 rounded-3xl blur-3xl" />
             <div className="relative bg-background/5 backdrop-blur-sm rounded-3xl p-8 md:p-12 border border-background/10">
               <div className="grid gap-8">
-                {stats.map((stat, index) => (
+                {statItems.map((stat, index) => (
                   <div
                     key={index}
                     className="flex items-center gap-6 p-6 rounded-2xl bg-background/5 hover:bg-background/10 transition-colors"

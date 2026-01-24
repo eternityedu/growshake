@@ -8,10 +8,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Lock, User, ArrowLeft, Loader2, Tractor, Leaf, Globe } from "lucide-react";
+import { Mail, Lock, User, ArrowLeft, Loader2, Tractor, Leaf, Globe, KeyRound } from "lucide-react";
 import logoMain from "@/assets/logo-main.png";
 
-type AuthMode = "signin" | "signup";
+type AuthMode = "signin" | "signup" | "forgot-password" | "reset-password";
 type UserRole = "user" | "farmer";
 
 const COUNTRIES = [
@@ -37,29 +37,116 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [mode, setMode] = useState<AuthMode>(searchParams.get("mode") === "signup" ? "signup" : "signin");
+  const [mode, setMode] = useState<AuthMode>(() => {
+    const urlMode = searchParams.get("mode");
+    if (urlMode === "signup") return "signup";
+    if (urlMode === "reset-password") return "reset-password";
+    return "signin";
+  });
   const [role, setRole] = useState<UserRole>(searchParams.get("role") === "farmer" ? "farmer" : "user");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [country, setCountry] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Check for password reset token in URL
+    const accessToken = searchParams.get("access_token");
+    const type = searchParams.get("type");
+    
+    if (type === "recovery" || accessToken) {
+      setMode("reset-password");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+      if (session && mode !== "reset-password") {
         navigate("/dashboard");
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("reset-password");
+      } else if (session && mode !== "reset-password") {
         navigate("/dashboard");
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, mode]);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (!email.trim()) {
+        throw new Error("Please enter your email address");
+      }
+
+      const redirectUrl = `${window.location.origin}/auth?mode=reset-password`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Reset link sent!",
+        description: "Check your email for a password reset link.",
+      });
+      setMode("signin");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send reset link. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (password.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+      if (password !== confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password updated!",
+        description: "Your password has been reset successfully. You can now sign in.",
+      });
+      setMode("signin");
+      setPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +220,304 @@ const Auth = () => {
     }
   };
 
+  const renderForgotPasswordForm = () => (
+    <form onSubmit={handleForgotPassword} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="email">Email *</Label>
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="pl-10"
+            required
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          We'll send you a link to reset your password
+        </p>
+      </div>
+
+      <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Sending link...
+          </>
+        ) : (
+          "Send Reset Link"
+        )}
+      </Button>
+
+      <p className="text-center text-sm text-muted-foreground mt-4">
+        Remember your password?{" "}
+        <button
+          type="button"
+          onClick={() => setMode("signin")}
+          className="text-primary hover:underline font-medium"
+        >
+          Sign in
+        </button>
+      </p>
+    </form>
+  );
+
+  const renderResetPasswordForm = () => (
+    <form onSubmit={handleResetPassword} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="password">New Password *</Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="pl-10"
+            required
+            minLength={6}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirm Password *</Label>
+        <div className="relative">
+          <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="confirmPassword"
+            type="password"
+            placeholder="••••••••"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="pl-10"
+            required
+            minLength={6}
+          />
+        </div>
+      </div>
+
+      <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Resetting password...
+          </>
+        ) : (
+          "Reset Password"
+        )}
+      </Button>
+    </form>
+  );
+
+  const renderMainForm = () => (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {mode === "signup" && (
+        <>
+          {/* Full Name */}
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Full Name *</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="fullName"
+                type="text"
+                placeholder="John Doe"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="pl-10"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Role Selection */}
+          <div className="space-y-3">
+            <Label>I want to</Label>
+            <RadioGroup
+              value={role}
+              onValueChange={(value) => setRole(value as UserRole)}
+              className="grid grid-cols-2 gap-4"
+            >
+              <div>
+                <RadioGroupItem
+                  value="user"
+                  id="user"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="user"
+                  className="flex flex-col items-center justify-center rounded-xl border-2 border-muted bg-card p-4 hover:bg-primary/5 hover:border-primary/30 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 cursor-pointer transition-all"
+                >
+                  <Leaf className="h-6 w-6 mb-2 text-primary" />
+                  <span className="font-medium">Get Vegetables</span>
+                  <span className="text-xs text-muted-foreground">As a user</span>
+                </Label>
+              </div>
+              <div>
+                <RadioGroupItem
+                  value="farmer"
+                  id="farmer"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="farmer"
+                  className="flex flex-col items-center justify-center rounded-xl border-2 border-muted bg-card p-4 hover:bg-primary/5 hover:border-primary/30 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 cursor-pointer transition-all"
+                >
+                  <Tractor className="h-6 w-6 mb-2 text-primary" />
+                  <span className="font-medium">Offer Land</span>
+                  <span className="text-xs text-muted-foreground">As a farmer</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Country Selection */}
+          <div className="space-y-2">
+            <Label>Country *</Label>
+            <Select value={country} onValueChange={setCountry}>
+              <SelectTrigger className="w-full">
+                <Globe className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Select your country" />
+              </SelectTrigger>
+              <SelectContent>
+                {COUNTRIES.map((c) => (
+                  <SelectItem key={c.code} value={c.code}>
+                    {c.name} ({c.currency})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Prices will be shown in your local currency
+            </p>
+          </div>
+        </>
+      )}
+
+      {/* Email */}
+      <div className="space-y-2">
+        <Label htmlFor="email">Email *</Label>
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="pl-10"
+            required
+          />
+        </div>
+      </div>
+
+      {/* Password */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Password *</Label>
+          {mode === "signin" && (
+            <button
+              type="button"
+              onClick={() => setMode("forgot-password")}
+              className="text-xs text-primary hover:underline"
+            >
+              Forgot password?
+            </button>
+          )}
+        </div>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="pl-10"
+            required
+            minLength={6}
+          />
+        </div>
+        {mode === "signup" && (
+          <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
+        )}
+      </div>
+
+      {/* Submit Button */}
+      <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {mode === "signin" ? "Signing in..." : "Creating account..."}
+          </>
+        ) : mode === "signin" ? (
+          "Sign In"
+        ) : (
+          "Create Account"
+        )}
+      </Button>
+
+      {/* Toggle Mode */}
+      <p className="text-center text-sm text-muted-foreground mt-6">
+        {mode === "signin" ? (
+          <>
+            Don't have an account?{" "}
+            <button
+              type="button"
+              onClick={() => setMode("signup")}
+              className="text-primary hover:underline font-medium"
+            >
+              Sign up
+            </button>
+          </>
+        ) : (
+          <>
+            Already have an account?{" "}
+            <button
+              type="button"
+              onClick={() => setMode("signin")}
+              className="text-primary hover:underline font-medium"
+            >
+              Sign in
+            </button>
+          </>
+        )}
+      </p>
+    </form>
+  );
+
+  const getTitle = () => {
+    switch (mode) {
+      case "forgot-password":
+        return "Reset Password";
+      case "reset-password":
+        return "Set New Password";
+      case "signup":
+        return "Join GrowShare";
+      default:
+        return "Welcome Back";
+    }
+  };
+
+  const getDescription = () => {
+    switch (mode) {
+      case "forgot-password":
+        return "Enter your email to receive a reset link";
+      case "reset-password":
+        return "Create a new secure password";
+      case "signup":
+        return "Create an account to start growing";
+      default:
+        return "Sign in to access your account";
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
       {/* Background */}
@@ -159,179 +544,17 @@ const Auth = () => {
               </span>
             </Link>
             <CardTitle className="text-2xl font-display">
-              {mode === "signin" ? "Welcome Back" : "Join GrowShare"}
+              {getTitle()}
             </CardTitle>
             <CardDescription>
-              {mode === "signin"
-                ? "Sign in to access your account"
-                : "Create an account to start growing"}
+              {getDescription()}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === "signup" && (
-                <>
-                  {/* Full Name */}
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name *</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="fullName"
-                        type="text"
-                        placeholder="John Doe"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* Role Selection */}
-                  <div className="space-y-3">
-                    <Label>I want to</Label>
-                    <RadioGroup
-                      value={role}
-                      onValueChange={(value) => setRole(value as UserRole)}
-                      className="grid grid-cols-2 gap-4"
-                    >
-                      <div>
-                        <RadioGroupItem
-                          value="user"
-                          id="user"
-                          className="peer sr-only"
-                        />
-                        <Label
-                          htmlFor="user"
-                          className="flex flex-col items-center justify-center rounded-xl border-2 border-muted bg-card p-4 hover:bg-primary/5 hover:border-primary/30 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 cursor-pointer transition-all"
-                        >
-                          <Leaf className="h-6 w-6 mb-2 text-primary" />
-                          <span className="font-medium">Get Vegetables</span>
-                          <span className="text-xs text-muted-foreground">As a user</span>
-                        </Label>
-                      </div>
-                      <div>
-                        <RadioGroupItem
-                          value="farmer"
-                          id="farmer"
-                          className="peer sr-only"
-                        />
-                        <Label
-                          htmlFor="farmer"
-                          className="flex flex-col items-center justify-center rounded-xl border-2 border-muted bg-card p-4 hover:bg-primary/5 hover:border-primary/30 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 cursor-pointer transition-all"
-                        >
-                          <Tractor className="h-6 w-6 mb-2 text-primary" />
-                          <span className="font-medium">Offer Land</span>
-                          <span className="text-xs text-muted-foreground">As a farmer</span>
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  {/* Country Selection */}
-                  <div className="space-y-2">
-                    <Label>Country *</Label>
-                    <Select value={country} onValueChange={setCountry}>
-                      <SelectTrigger className="w-full">
-                        <Globe className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <SelectValue placeholder="Select your country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COUNTRIES.map((c) => (
-                          <SelectItem key={c.code} value={c.code}>
-                            {c.name} ({c.currency})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Prices will be shown in your local currency
-                    </p>
-                  </div>
-                </>
-              )}
-
-              {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                    minLength={6}
-                  />
-                </div>
-                {mode === "signup" && (
-                  <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
-                )}
-              </div>
-
-              {/* Submit Button */}
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {mode === "signin" ? "Signing in..." : "Creating account..."}
-                  </>
-                ) : mode === "signin" ? (
-                  "Sign In"
-                ) : (
-                  "Create Account"
-                )}
-              </Button>
-            </form>
-
-            {/* Toggle Mode */}
-            <p className="text-center text-sm text-muted-foreground mt-6">
-              {mode === "signin" ? (
-                <>
-                  Don't have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => setMode("signup")}
-                    className="text-primary hover:underline font-medium"
-                  >
-                    Sign up
-                  </button>
-                </>
-              ) : (
-                <>
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => setMode("signin")}
-                    className="text-primary hover:underline font-medium"
-                  >
-                    Sign in
-                  </button>
-                </>
-              )}
-            </p>
+            {mode === "forgot-password" && renderForgotPasswordForm()}
+            {mode === "reset-password" && renderResetPasswordForm()}
+            {(mode === "signin" || mode === "signup") && renderMainForm()}
           </CardContent>
         </Card>
       </div>
